@@ -1,75 +1,99 @@
-import supabase from '../../../config/supabaseClient.js';
-import { PropertyDto } from '../dtos/property.js';
+import e from "express";
+import supabase from "../../../config/supabaseClient.js";
+import { PropertyDto } from "../dtos/property.js";
 
 export class PropertyRepository {
-    constructor() {
-        this.tableName = 'properties';
+  constructor() {
+    this.tableName = "properties";
+  }
+
+  async getAll() {
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`Error fetching properties: ${error.message}`);
     }
 
-    async getAll() {
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .order('created_at', { ascending: false });
+    return data.map((property) => new PropertyDto(property));
+  }
 
-        if (error) {
-            throw new Error(`Error fetching properties: ${error.message}`);
-        }
+  async getById(id) {
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .select("*")
+      .eq("id", id)
+      .single();
 
-        return data.map(property => new PropertyDto(property));
+    if (error) {
+      throw new Error(`Error fetching property with ID ${id}: ${error.message}`);
     }
 
-    async getById(id) {
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .select('*')
-            .eq('id', id)
-            .single();
+    return data ? new PropertyDto(data) : null;
+  }
 
-        if (error) {
-            throw new Error(`Error fetching property with ID ${id}: ${error.message}`);
-        }
+  async create(propertyData) {
+    const { data, error } = await supabase
+      .from(this.tableName)
+      .insert([propertyData])
+      .select()
+      .single();
 
-        return data ? new PropertyDto(data) : null;
+    if (error) {
+      throw new Error(`Error creating property: ${error.message}`);
     }
 
-    async create(propertyData) {
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .insert([propertyData])
-            .single();
+    return new PropertyDto(data);
+  }
 
-        if (error) {
-            throw new Error(`Error creating property: ${error.message}`);
-        }
+  async update(id, propertyData) {
+    const { data: updatedProperty, error } = await supabase
+      .from(this.tableName)
+      .update(propertyData)
+      .eq("id", id)
+      .select()
+      .single();
 
-        return new PropertyDto(data[0]);
+    if (error) {
+      throw new Error(`Error updating property: ${error.message}`);
     }
 
-    async update(id, propertyData) {
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .update(propertyData)
-            .eq('id', id)
-            .single();
-
-        if (error) {
-            throw new Error(`Error updating property with ID ${id}: ${error.message}`);
-        }
-
-        return new PropertyDto(data[0]);
+    if (!updatedProperty) {
+      return null;
     }
 
-    async delete(id) {
-        const { data, error } = await supabase
-            .from(this.tableName)
-            .delete()
-            .eq('id', id)
+    return new PropertyDto(updatedProperty);
+  }
 
-        if (error) {
-            throw new Error(`Error deleting property with ID ${id}: ${error.message}`);
-        }
+ 
+  async delete(id) {
+    const { data: existingProperty, error } = await supabase
+      .from(this.tableName)
+      .select("*")
+      .eq("id", id)
+      .single();
 
-        return data ? new PropertyDto(data) : null;
+    if (error) {
+      throw new Error(`Error finding property with ID ${id}`);
     }
+
+    if (!existingProperty) {
+      return null;
+    }
+
+    const { error: deleteError } = await supabase
+      .from(this.tableName)
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      throw new Error(`Error deleting property with ID ${id}: ${deleteError.message}`);
+    }
+
+    return new PropertyDto(existingProperty);
+
+    // return data ? new PropertyDto(data) : null;
+  }
 }

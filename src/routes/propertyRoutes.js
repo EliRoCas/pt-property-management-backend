@@ -8,5 +8,6 @@ router.get("/", propertyController.getProperties.bind(propertyController));
 router.get("/:id", propertyController.getProperty.bind(propertyController));
 router.post("/", propertyController.createProperty.bind(propertyController));
 router.delete("/:id", propertyController.deleteProperty.bind(propertyController));
+router.patch("/:id", propertyController.updateProperty.bind(propertyController));
 
 export default router;
